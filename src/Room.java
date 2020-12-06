@@ -5,7 +5,7 @@ public class Room {
 
     private boolean[][] wallMap;
 
-    private String[][] terrainMap;
+    private Tile[][] terrainMap;
 
     private String roomName = "";
 
@@ -21,7 +21,22 @@ public class Room {
         roomHeight = height;
 
         wallMap = new boolean[width][height];
-        terrainMap = new String[width][height];
+        terrainMap = new Tile[width][height];
+
+        for (boolean[] a : wallMap)
+            for (boolean b : a)
+                b = false;
+        for (int i = 0;i < terrainMap.length;i++) {
+            for (int j = 0;j < terrainMap[i].length;j++) {
+                terrainMap[i][j] = new Tile("", null);
+            }
+        }
+    }
+
+    public Tile[][] getTerrainMap() { return terrainMap;}
+
+    public boolean[][] getWallMap() {
+        return wallMap;
     }
 
     public int getRoomHeight() {

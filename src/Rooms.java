@@ -14,6 +14,8 @@ public class Rooms extends JPanel implements ActionListener, DocumentListener {
 
     JButton addRoom = new JButton("New Room");
 
+    ActionListener listener;
+
     Container roomsList = new Container();
 
     HintTextField searchTextField = new HintTextField("Search Rooms:", HintTextField.CENTER_HIDDEN);
@@ -22,7 +24,8 @@ public class Rooms extends JPanel implements ActionListener, DocumentListener {
 
     ArrayList<Room> rooms = new ArrayList<>();
 
-    public Rooms() {
+    public Rooms(ActionListener listener) {
+        this.listener = listener;
         frame.setSize(250, 400);
         frame.setTitle("Rooms");
         frame.add(this);
@@ -41,17 +44,23 @@ public class Rooms extends JPanel implements ActionListener, DocumentListener {
 
     public void updateList() {
         roomsList.removeAll();
-        roomsList.setLayout(new GridLayout(rooms.size()+10, 1));
+        roomsList.setLayout(new GridLayout(rooms.size() + 10, 1));
         JButton b;
         for (Room r : rooms) {
             b = new JButton(r.getName());
-            b.setActionCommand(r.getID() + "");
+            b.setActionCommand("r:" + r.getID());
             b.addActionListener(this);
-            if(r.getName().startsWith(searchTextField.getText()))
-                roomsList.add(b);
+            b.addActionListener(listener);
+            if (r.getName().startsWith(searchTextField.getText())) roomsList.add(b);
         }
         roomScroll.revalidate();
         repaint();
+    }
+
+    public Room getRoom(int roomID) {
+        for (Room r : rooms)
+            if (r.getID() == roomID) return r;
+        return null;
     }
 
     @Override
@@ -68,23 +77,18 @@ public class Rooms extends JPanel implements ActionListener, DocumentListener {
     public void actionPerformed(ActionEvent e) {
         String command = e.getActionCommand();
 
-        switch (command.split(":")[0]) {
-
-            case "NewRoom":
-                Room temp = new Room(cRoomID, JOptionPane.showInputDialog("Room name"));
-                String[] roomDetails = JOptionPaneMultiInput.showInput(null, "Width:", "Height:", "Room Size");
-                if(roomDetails.length == 2)
-                    try {
-                        temp.setRoomSize(Integer.parseInt(roomDetails[0]), Integer.parseInt(roomDetails[1]));
-                        cRoomID++;
-                        rooms.add(temp);
-                    }catch(Exception ignored){}
-                updateList();
-                break;
-
-            default:
-                Log.logLine("Unknown command " + command);
-                Log.logLine("Source " + e.getSource());
+        if ("NewRoom".equals(command.split(":")[0])) {
+            Room temp = new Room(cRoomID, JOptionPane.showInputDialog("Room name"));
+            String[] roomDetails = JOptionPaneMultiInput.showInput(null, "Width:", "Height:", "Room Size");
+            if (roomDetails.length == 2) try {
+                temp.setRoomSize(Integer.parseInt(roomDetails[0]), Integer.parseInt(roomDetails[1]));
+                cRoomID++;
+                rooms.add(temp);
+            } catch (Exception ignored) {}
+            updateList();
+        } else {
+            Log.logLine("Unknown command " + command);
+            Log.logLine("Source " + e.getSource());
         }
 
 

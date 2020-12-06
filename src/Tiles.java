@@ -28,22 +28,26 @@ public class Tiles extends JPanel implements MouseListener {
         Graphics2D g2 = (Graphics2D) g;
         super.paintComponent(g2);
         for (int i = 0;i < tiles.length;i++) {
-            g2.drawImage(tiles[i].getImage(), (i % (this.getWidth() / 64)) * 64, (i / (this.getWidth() / 64)) * 64,
+            g2.drawImage(tiles[i].getImage(), (i % (this.getWidth() / 32)) * 32, (i / (this.getWidth() / 32)) * 32,
                     null);
         }
         g2.setStroke(new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{9}, 0));
-        g2.drawRect(((selected % (this.getWidth() / 64)) * 64) + 4, ((selected / (this.getHeight() / 64)) * 64) + 4, 56,
-                56);
+        g2.drawRect(((selected % (this.getWidth() / 32)) * 32) + 2, ((selected / (this.getHeight() / 32)) * 32) + 2, 28,
+                28);
 
         drawGrid(g2);
     }
 
+    public Tile getTile(){
+        return tiles[selected];
+    }
+
     public void drawGrid(Graphics2D g2) {
         g2.setStroke(new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{9}, 0));
-        for (int i = 0;i < this.getWidth();i += 64) {
+        for (int i = 0;i < this.getWidth();i += 32) {
             g2.drawLine(i, 0, i, this.getHeight());
         }
-        for (int i = 0;i < this.getHeight();i += 64) {
+        for (int i = 0;i < this.getHeight();i += 32) {
             g2.drawLine(0, i, this.getWidth(), i);
         }
     }
@@ -62,7 +66,7 @@ public class Tiles extends JPanel implements MouseListener {
     public void mouseClicked(MouseEvent e) {
         double x = e.getX();
         double y = e.getY();
-        selected = (int)(x / 64) + ((int)(y / 64) * (this.getWidth()/64));
+        selected = (int)(x / 32) + ((int)(y / 32) * (this.getWidth()/32));
         if (selected > tiles.length) selected = 0;
         frame.setTitle(tiles[selected].getName());
         repaint();
