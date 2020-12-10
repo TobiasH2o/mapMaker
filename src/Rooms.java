@@ -4,6 +4,7 @@ import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 
 public class Rooms extends JPanel implements ActionListener, DocumentListener {
@@ -41,7 +42,16 @@ public class Rooms extends JPanel implements ActionListener, DocumentListener {
 
         searchTextField.getDocument().addDocumentListener(this);
     }
-
+    public void clearRooms(){
+        rooms.removeAll(rooms);
+        cRoomID = 0;
+        updateList();
+    }
+    public void addRoom(Room room){
+        rooms.add(room);
+        cRoomID += 1;
+        updateList();
+    }
     public void updateList() {
         roomsList.removeAll();
         roomsList.setLayout(new GridLayout(rooms.size() + 10, 1));
@@ -62,12 +72,13 @@ public class Rooms extends JPanel implements ActionListener, DocumentListener {
             if (r.getID() == roomID) return r;
         return null;
     }
-
     @Override
     public void setLocation(int x, int y) {
         frame.setLocation(x, y);
     }
-
+    public int getRoomCount(){
+        return rooms.size();
+    }
     @Override
     public void setVisible(boolean x) {
         frame.setVisible(x);

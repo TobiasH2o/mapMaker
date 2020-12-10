@@ -1,11 +1,14 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.File;
+import java.util.Objects;
 
 public class MainPanel extends JPanel implements KeyListener, ActionListener, MouseListener {
 
     JFrame parent;
     Rooms roomPanel = new Rooms(this);
+    Entities entities = new Entities();
     Timer movement = new Timer(10, this);
     Timer click = new Timer(10, this);
     Room currentRoom = new Room(0, "");
@@ -15,15 +18,25 @@ public class MainPanel extends JPanel implements KeyListener, ActionListener, Mo
     int cameraY = 0;
     int deltaY = 0;
     Tiles tilePanel = new Tiles();
-    JCheckBox wallsCheckBox = new JCheckBox("Wall map");
+    JComboBox<? extends String> placementTypes = new JComboBox<>(new String[]{"Walls", "Terrain", "Entities", "Player" +
+                                                                                                              " View"});
     boolean change;
+    JButton saveMapButton = new JButton("Save Map");
+    JButton loadMapButton = new JButton("Load Map");
+    Container southContainer = new Container();
 
     public MainPanel(JFrame parent) {
         this.parent = parent;
+
         roomPanel.setLocation(parent.getLocationOnScreen().x - roomPanel.frame.getWidth() - 2,
                 parent.getLocationOnScreen().y);
         roomPanel.setFocusable(false);
         roomPanel.setVisible(true);
+
+        entities.setLocation(parent.getLocationOnScreen().x - entities.frame.getWidth() - 2,
+                parent.getLocationOnScreen().y + 2 + roomPanel.frame.getHeight());
+        entities.setFocusable(false);
+        entities.setVisible(true);
 
         tilePanel.setLocation(parent.getLocationOnScreen().x + parent.getWidth() + 2, parent.getLocationOnScreen().y);
         tilePanel.setFocusable(false);
@@ -31,6 +44,8 @@ public class MainPanel extends JPanel implements KeyListener, ActionListener, Mo
 
         movement.setActionCommand("move");
         click.setActionCommand("click");
+        saveMapButton.setActionCommand("save");
+        loadMapButton.setActionCommand("load");
 
         setLayout(new BorderLayout());
 
@@ -42,10 +57,75 @@ public class MainPanel extends JPanel implements KeyListener, ActionListener, Mo
         addKeyListener(this);
         addMouseListener(this);
 
-        wallsCheckBox.setFocusable(false);
-        wallsCheckBox.addActionListener(this);
+        saveMapButton.setFocusable(false);
+        saveMapButton.addActionListener(this);
 
-        add(wallsCheckBox, BorderLayout.SOUTH);
+        placementTypes.setFocusable(false);
+        placementTypes.addActionListener(this);
+
+        loadMapButton.setFocusable(false);
+        loadMapButton.addActionListener(this);
+
+        southContainer.setLayout(new BoxLayout(southContainer, BoxLayout.X_AXIS));
+
+        southContainer.add(loadMapButton);
+        southContainer.add(saveMapButton);
+        southContainer.add(placementTypes);
+
+        add(southContainer, BorderLayout.SOUTH);
+
+    }
+
+    public void saveMapData() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.showSaveDialog(parent);
+        File saveLocation = fileChooser.getSelectedFile();
+        if (!saveLocation.getAbsolutePath().endsWith(".mmk"))
+            saveLocation = new File(saveLocation.getAbsolutePath() + ".mmk");
+        if (saveLocation.exists()) if (!saveLocation.delete()) JOptionPane.showMessageDialog(parent,
+                "Failed to overwrite save file. Please " + "make sure that the file is not open in " +
+                "any other application.", "FAIL", JOptionPane.ERROR_MESSAGE);
+        FileManager.checkFile(saveLocation);
+        for (int i = 0;i < roomPanel.getRoomCount();i++) {
+            FileManager.saveRoom(saveLocation, roomPanel.getRoom(i));
+        }
+    }
+
+    public void loadMapData() {
+        roomPanel.clearRooms();
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.showOpenDialog(parent);
+        File loadLocation = fileChooser.getSelectedFile();
+        String[] fileData = FileManager.loadMapData(loadLocation);
+        Room room = null;
+        boolean[][] wallMap;
+        Tile[][] terrainMap;
+        Log.logLine(fileData);
+        for (int i = 0;i < fileData.length;i += 3) {
+            room = new Room(Integer.parseInt(fileData[i].split(FileManager.break1)[0]),
+                    fileData[i].split(FileManager.break1)[1]);
+            room.setRoomSize(Integer.parseInt(fileData[i].split(FileManager.break1)[2]),
+                    Integer.parseInt(fileData[i].split(FileManager.break1)[3]));
+            wallMap = new boolean[room.getRoomWidth()][room.getRoomHeight()];
+            for (int l = 0;l < room.getRoomWidth() * room.getRoomHeight();l++) {
+                wallMap[l % room.getRoomWidth()][l / room.getRoomWidth()] =
+                        Boolean.parseBoolean(fileData[i + 1].split(FileManager.break1)[l]);
+            }
+            terrainMap = new Tile[room.getRoomWidth()][room.getRoomHeight()];
+            for (int l = 0;l < room.getRoomWidth() * room.getRoomHeight();l++) {
+                String tileName = fileData[i + 2].split(FileManager.break1)[l];
+                if(tilePanel.tileExists(tileName) && !tileName.equals("NULL")){
+                    terrainMap[l % room.getRoomWidth()][l/room.getRoomWidth()] = tilePanel.getTile(tileName);
+                }else{
+                    terrainMap[l % room.getRoomWidth()][l/room.getRoomWidth()] = new Tile("", null);;
+                }
+            }
+
+
+            room.setWallMap(wallMap);
+            room.setTerrainMap(terrainMap);
+        }
+        roomPanel.addRoom(room);
 
     }
 
@@ -53,13 +133,7 @@ public class MainPanel extends JPanel implements KeyListener, ActionListener, Mo
     protected void paintComponent(Graphics g) {
         Graphics2D g2 = (Graphics2D) g;
         super.paintComponent(g2);
-        g2.setStroke(new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{9}, 0));
-        for (int i = 0;i < currentRoom.getRoomWidth() + 1;i++) {
-            g2.drawLine((i * 32) + cameraX, cameraY, (i * 32) + cameraX, cameraY + (currentRoom.getRoomHeight() * 32));
-        }
-        for (int i = 0;i < currentRoom.getRoomHeight() + 1;i++) {
-            g2.drawLine(cameraX, (i * 32) + cameraY, cameraX + (currentRoom.getRoomWidth() * 32), (i * 32) + cameraY);
-        }
+
         if (isValid(currentRoom)) {
             Tile[][] tileMap = currentRoom.getTerrainMap();
             boolean[][] wallMap = currentRoom.getWallMap();
@@ -67,14 +141,25 @@ public class MainPanel extends JPanel implements KeyListener, ActionListener, Mo
                 for (int k = 0;k < currentRoom.getRoomHeight();k++) {
                     if (tileMap[i][k] != null)
                         g2.drawImage(tileMap[i][k].getImage(), (i * 32) + cameraX, (k * 32) + cameraY, null);
-                    if (wallsCheckBox.isSelected()) {
+                    if (Objects.equals(placementTypes.getSelectedItem(), "Walls")) {
                         if (wallMap[i][k]) g2.setColor(new Color(134, 255, 128, 190));
                         else g2.setColor(new Color(255, 128, 128, 190));
                         g2.fillRect((i * 32) + cameraX, (k * 32) + cameraY, 32, 32);
                     }
                 }
             }
-
+        }
+        if(!Objects.equals(placementTypes.getSelectedItem(), "Player View")) {
+            g2.setStroke(new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{9}, 0));
+            for (int i = 0;i < currentRoom.getRoomWidth() + 1;i++) {
+                g2.drawLine((i * 32) + cameraX, cameraY, (i * 32) + cameraX,
+                        cameraY + (currentRoom.getRoomHeight() * 32));
+            }
+            for (int i = 0;i < currentRoom.getRoomHeight() + 1;i++) {
+                g2.drawLine(cameraX, (i * 32) + cameraY, cameraX + (currentRoom.getRoomWidth() * 32),
+                        (i * 32) + cameraY);
+            }
+            g2.setStroke(new BasicStroke(2));
         }
     }
 
@@ -159,8 +244,14 @@ public class MainPanel extends JPanel implements KeyListener, ActionListener, Mo
                 currentRoom = roomPanel.getRoom(Integer.parseInt(command[1]));
                 break;
             case "click":
-                if (wallsCheckBox.isSelected()) currentRoom.getWallMap()[(int) xPos][(int) yPos] = change;
+                if (Objects.equals(placementTypes.getSelectedItem(), "Walls")) currentRoom.getWallMap()[(int) xPos][(int) yPos] = change;
                 else currentRoom.getTerrainMap()[(int) xPos][(int) yPos] = currentTile;
+                break;
+            case "save":
+                saveMapData();
+                break;
+            case "load":
+                loadMapData();
                 break;
             default:
                 Log.logLine("Action Unrecognized");
@@ -185,7 +276,7 @@ public class MainPanel extends JPanel implements KeyListener, ActionListener, Mo
         yPos -= cameraY;
         xPos /= 32;
         yPos /= 32;
-        if (wallsCheckBox.isSelected()) {
+        if (Objects.equals(placementTypes.getSelectedItem(), "Walls")) {
             click.start();
             change = !currentRoom.getWallMap()[(int) xPos][(int) yPos];
         } else {

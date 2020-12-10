@@ -6,6 +6,7 @@ public class Room {
     private boolean[][] wallMap;
 
     private Tile[][] terrainMap;
+    private EntityBase[][] terrainMap2;
 
     private String roomName = "";
 
@@ -35,8 +36,16 @@ public class Room {
 
     public Tile[][] getTerrainMap() { return terrainMap;}
 
+    public void setTerrainMap(Tile[][] terrainMap) {
+        this.terrainMap = terrainMap;
+    }
+
     public boolean[][] getWallMap() {
         return wallMap;
+    }
+
+    public void setWallMap(boolean[][] wallMap) {
+        this.wallMap = wallMap;
     }
 
     public int getRoomHeight() {

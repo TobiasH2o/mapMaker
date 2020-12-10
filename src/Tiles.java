@@ -1,8 +1,10 @@
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 
 public class Tiles extends JPanel implements MouseListener {
 
@@ -17,7 +19,6 @@ public class Tiles extends JPanel implements MouseListener {
 
         tiles = new Tile[FileManager.countTiles()];
         FileManager.loadTiles(tiles);
-
         frame.add(this);
         this.addMouseListener(this);
         this.setFocusable(true);
@@ -60,6 +61,20 @@ public class Tiles extends JPanel implements MouseListener {
     @Override
     public void setVisible(boolean x) {
         frame.setVisible(x);
+    }
+
+    public boolean tileExists(String check){
+        for (Tile tile : tiles) {
+            if (tile.getName().equals(check)) return true;
+        }
+        return false;
+    }
+
+    public Tile getTile(String tileName){
+        for (Tile tile : tiles) {
+            if (tile.getName().equals(tileName)) return tile;
+        }
+        return null;
     }
 
     @Override
